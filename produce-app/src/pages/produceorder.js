@@ -73,6 +73,7 @@ export default function produceorder() {
     // const [currentBalance, setCurrentBalance]=useState([])
     // const [totalBalance,setTotalBalance]=useState(parseFloat(0.00).toFixed(2))
     const [enterButton, setEnterButton]=useState(false)
+    const [produceItems, setProduceItems] = useState([])
     const [open, setOpen]=useState(false)
     const [itemExist, setItemExist]=useState(false)
     const [isLoading, setIsLoading] = useState(false);
@@ -82,6 +83,12 @@ export default function produceorder() {
       message: '',
       severity: 'success' // can be 'error', 'warning', 'info', 'success'
     });
+
+    let quantityItems=[]
+    let total_Balance=[]
+    let grand_Total=[]
+    let total=0.000
+    let totalQ=0
 
     // useEffect(() => {
     //   console.log("Total balance updated: ", totalBalance);
@@ -581,6 +588,46 @@ export default function produceorder() {
     });
   };
 
+  const getQuantity=()=>{
+    let index=0;
+    let currentQuantity=0;
+
+
+    while (userCurrentOrder.length > index) {
+      if (userCurrentOrder[index].stock !==false) {
+          quantityItems[index]=userCurrentOrder[index].Qty;
+      }
+      else{
+        quantityItems[index]=0
+      }
+
+      index++;
+    }//end of while loop
+
+  }
+  const getTotalQuantity=()=>{
+    let index=0
+    let tempValue1=0
+    let tempValue2=0
+    let tempTotalQnty=0
+
+
+
+    getQuantity();
+
+    while (quantityItems.length > index) {
+      tempValue1=parseInt(quantityItems[index])
+      tempTotalQnty=tempValue1+tempValue2
+      tempValue2=tempTotalQnty
+
+      index++
+    }//end of while loop
+
+    totalQ=tempTotalQnty
+
+    return totalQ
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-green-50">
       <header className="w-full bg-white shadow-sm">
@@ -765,7 +812,8 @@ export default function produceorder() {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <div className="flex justify-between text-sm text-gray-600">
                   <span>Total Items:</span>
-                  <span>{userCurrentOrder.length}</span>
+                  {/* <span>{userCurrentOrder.length}</span> */}
+                  <span>{getTotalQuantity()}</span>
                 </div>
                 <div className="flex justify-between font-medium text-gray-900 mt-2">
                   <span>Total Amount:</span>
