@@ -4,7 +4,7 @@ use Illuminate\Support\Str;
 
 return [
 
-    'default' => env('CACHE_DRIVER', 'file'),
+    'default' => 'file',
     /*
     |--------------------------------------------------------------------------
     | Default Cache Store
@@ -15,8 +15,6 @@ return [
     | specified when running a cache operation inside the application.
     |
     */
-
-    'default' => env('CACHE_STORE', 'database'),
 
     /*
     |--------------------------------------------------------------------------

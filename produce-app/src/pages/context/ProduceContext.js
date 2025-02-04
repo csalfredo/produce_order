@@ -2,23 +2,30 @@
 import React, { useState, createContext, useContext } from 'react';
 import gala_apple from "@/components/images/gala_apple.png"
 // import gala_apple from "../components/images/gala_apple.png"
-import fuji_apple from "@/components/images/fuji_apples.png"
+import fuji_apple from "@/components/images/FUJIAPPLE.png"
 import honey_crisp from "@/components/images/honeycrisp.png"
-import granny_smith from "@/components/images/granny_smith2.png"
+import granny_smith from "@/components/images/appleGranny.png"
 import oranges_navel from "@/components/images/navel_oranges.png"
 import lemons from "@/components/images/lemons.png"
-import limes from "@/components/images/limes.png"
+import limes from "@/components/images/LIMES.png"
 import strawberries from "@/components/images/strawberries.png"
-import bananas from "@/components/images/bananas.png"
+import bananas from "@/components/images/BANANAS.png"
 import blueberries from "@/components/images/blueberries.png"
 import cabbage from "@/components/images/cabbage.png"
 import cauliflower from "@/components/images/cauliflower.png"
 import green_grapes from "@/components/images/green_grapes.png"
 import raspberries from "@/components/images/raspberries.png"
 import red_grapes from "@/components/images/red_grapes.png"
-import roma from "@/components/images/roma.png"
+import roma from "@/components/images/ROMATOMATO2.png"
 import tomato from "@/components/images/tomato.png"
 import watermelon from "@/components/images/watermelon.png"
+import avocado from "@/components/images/AVOCADO.png"
+import broccoli from "@/components/images/BROCOLI2.png"
+import cilantro from "@/components/images/CILANTRO2.png"
+import garlic from "@/components/images/GARLIC.png"
+import russet from "@/components/images/RUSSETPOTATO.png"
+import whiteOnion from "@/components/images/WHITE_ONION.png"
+
 
 const ProduceContext = createContext();
 
@@ -43,18 +50,35 @@ const [produceListItems, setProduceListItems] = useState([{id:0, name:"apple gal
     {id:14, name:"roma", product_code:"482", inventory:"100", case_cost:25.49, case_size:"25 lbs", promo_price:15.00, stock:true, produce_Image: roma, Qty:1,totalBalance:0.00},
     {id:15, name:"tomato", product_code:"478", inventory:"40", case_cost:20.49, case_size:"15 lbs", promo_price:0, stock:true, produce_Image: tomato, Qty:1,totalBalance:0.00},
     {id:16, name:"watermelon", product_code:"304", inventory:"40 bins", case_cost:200.15, case_size:"120 units", promo_price:0, stock:true, produce_Image: watermelon, Qty:1,totalBalance:0.00},
+    {id:17, name:"avocado", product_code:"140", inventory:"50", case_cost:48.50, case_size:"80", promo_price:0, stock:true, produce_Image: avocado, Qty:1,totalBalance:0.00},
+    {id:18, name:"broccoli", product_code:"170", inventory:"32", case_cost:19.99, case_size:"25 lbs", promo_price:0, stock:true, produce_Image: broccoli, Qty:1,totalBalance:0.00},
+    {id:19, name:"cilantro", product_code:"192", inventory:"25", case_cost:35.00, case_size:"60 units", promo_price:0, stock:true, produce_Image: cilantro, Qty:1,totalBalance:0.00},
+    {id:20, name:"garlic", product_code:"232", inventory:"10", case_cost:42.00, case_size:"55 units", promo_price:12.99, stock:true, produce_Image: garlic, Qty:1,totalBalance:0.00},
+    {id:21, name:"russet potato", product_code:"424", inventory:"200", case_cost:10.00, case_size:"6 units", promo_price:0, stock:true, produce_Image: russet, Qty:1,totalBalance:0.00},
+    {id:22, name:"white onion", product_code:"348", inventory:"145", case_cost:15.50, case_size:"50 lbs", promo_price:0, stock:true, produce_Image: whiteOnion, Qty:1,totalBalance:0.00},
+
   ]);
   const [userCurrentOrder, setUserCurrentOrder] = useState([])
-  const [totalBalance,setTotalBalance]=useState(parseFloat(0.00).toFixed(2))
+  const [totalBalance,setTotalBalance]=useState(0.00)
   const [qtyTotal, setQtyTotal]=useState()
-
-
+  const [currentBalance, setCurrentBalance]=useState([])
+  const [submitButtonClicked, setSubmitClicked]=useState(false)
   const updateQtyTotal=(newQty)=>{
     setQtyTotal(newQty)
   }
 
   const updateTotalBalance=(newTotalBalance)=>{
-    setTotalBalance(newTotalBalance);
+    console.log("restetting total balance ", newTotalBalance)
+    if(newTotalBalance !==undefined){
+      setTotalBalance(parseFloat(newTotalBalance).toFixed(2));
+    }
+
+  }
+  
+  const toggleSubmitButtonClicked=()=>{
+
+    console.log("submitButtonClicked is ", submitButtonClicked)
+    setSubmitClicked(!submitButtonClicked)
   }
 
   const updateProduceList = (newList) => {
@@ -62,8 +86,16 @@ const [produceListItems, setProduceListItems] = useState([{id:0, name:"apple gal
   };
 
   const updateUserOrder = (newOrder) => {
+    console.log(newOrder)
     setUserCurrentOrder(newOrder);
   };
+
+  const updateCurrentBalance=(crntBalnce)=>{
+
+    console.log(crntBalnce)
+
+    setCurrentBalance(crntBalnce)
+  }
 
   const getQty=(index)=>{
     return userCurrentOrder[index].Qty
@@ -73,8 +105,12 @@ const [produceListItems, setProduceListItems] = useState([{id:0, name:"apple gal
     setQntySelector(!qntySelelctor)
   }
 
+  const clearOrder=()=>{
+    setUserCurrentOrder([])
+   
+  }
   return (
-    <ProduceContext.Provider value={{ produceListItems, updateProduceList, userCurrentOrder, updateUserOrder, updateTotalBalance, totalBalance,updateQtyTotal,qtyTotal, getQty}}>
+    <ProduceContext.Provider value={{ produceListItems, updateProduceList, userCurrentOrder, updateUserOrder, updateTotalBalance, totalBalance,updateQtyTotal,qtyTotal, getQty,clearOrder,updateCurrentBalance, currentBalance,toggleSubmitButtonClicked,submitButtonClicked }}>
       {children}
     </ProduceContext.Provider>
   );

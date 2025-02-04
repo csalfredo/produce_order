@@ -3,15 +3,17 @@ import React, {useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useProduce } from './context/ProduceContext';
 import { useSwitch } from '@nextui-org/react';
-import { Stack, Autocomplete, TextField, Button, MenuItem, Select } from "@mui/material"
+import { Stack, Autocomplete, TextField, Button, MenuItem, Select, accordionSummaryClasses } from "@mui/material"
+import Snackbar1 from '@mui/material/Snackbar';
 import queryString from 'query-string';
 import { Questrial } from 'next/font/google';
 import QuantitySelector from './QuantitySelector';
 import SendEmail from './SendEmail';
 import axios from 'axios';
+import Navbar from '@/components/Navbar';
 
 const ProduceList = () => {
-  const { updateProduceList, userCurrentOrder, updateUserOrder, updateTotalBalance, totalBalance } = useProduce();
+  const { updateProduceList, userCurrentOrder, updateUserOrder, updateTotalBalance, totalBalance,clearOrder, updateCurrentBalance,toggleSubmitButtonClicked,submitButtonClicked} = useProduce();
   const router = useRouter();
   // const { order } = router.query;
   const [produceItems, setProduceItems] = useState([])
@@ -27,6 +29,8 @@ const ProduceList = () => {
   const [isCustomQuantity,setIsCustomQuantity]=useState(false)
   const [selectedQuantity, setSelectedQuantity] = useState('')
   const [submitButton, setSubmitButton]=useState(false)
+  const [error, setError]=useState(null)
+  const [customQty, setCustomQty]=useState(false)
 
 
 
@@ -37,6 +41,7 @@ const ProduceList = () => {
   let totalQ=0
 
   console.log("userCurrentOrder is ", userCurrentOrder)
+  console.log("quantity is ", quantity)
 
   useEffect(()=>{
     const parsed=queryString.parse(window.location.search)
@@ -68,30 +73,57 @@ const ProduceList = () => {
   
   }, [])
 
+  const toggleCustomQty=()=>{
+    setCustomQty(!customQty)
+  }
+
+  const updateQty=()=>{
+    toggleCustomQty()
+  }
+
   const toggleSubmitButton=()=>{
     setSubmitButton(!submitButton)
 
   }
+
   const handleQuantityChange = (quantity,index,id) => {
     // setSelectedQuantity(quantity);
-    // console.log('Selected Quantity:', quantity, ",and index is ", index);
+    console.log('Selected Quantity:', quantity, ",and index is ", index);
 
     // produceItems[index].Qty=quantity
 
     console.log("quantity is ", quantity, ",and is ", id)
 
-    const updatedOrder = produceItems.map(item =>
+    const updatedOrder = userCurrentOrder.map(item =>
       item.id === id ? { ...item, Qty: Number(quantity) } : item
     );
     updateUserOrder(updatedOrder);
 
-    produceItems[index].Qty=quantity
+    // produceItems[index].Qty=quantity
 
-    
+    userCurrentOrder[index].Qty=quantity
+  }
+
+  const handleQtyChange=(qty,Q,index,id)=>{
+
+    console.log("qty is ", qty, ", index is ", index, ",and id is ", id)
+
+    if (qty.length===0) {
+      const updatedOrder = userCurrentOrder.map(item =>
+        item.id === id ? { ...item, Qty: Number(quantity) } : item
+      );
+      updateUserOrder(updatedOrder);
+  
+      // produceItems[index].Qty=quantity
+  
+      userCurrentOrder[index].Qty=quantity
+    }
+    else{
+      setQuantity(qty);
+    }
 
 
   }
-
   const removeOutStocks=()=>{
     let index=0
     let tempValue=''
@@ -227,6 +259,7 @@ const ProduceList = () => {
     console.log("Inside value of setValueUpdateProduce is")
   }
 
+
   const setValueUpdateQty=(e,row)=>{
  
 
@@ -291,31 +324,6 @@ const ProduceList = () => {
 
   }
 
-  // const handleQuantity=(e)=>{
-  //   console.log(e.target.value)
-
-  //   const value=e.target.value
-  //   if (value==='10+') {
-  //     setIsCustomQuantity(true)
-  //     setQuantity('')
-  //     onQuantityChange('')
-
-  //   } else {
-  //     setIsCustomQuantity(false)
-  //     setQuantity(value)
-  //     onQuantityChange(value)
-  //   }
-  // }
-
-  // const handleChangeCustomQuantityChange=(e)=>{
-  //   const value= e.target.value
-
-  //   console.log(value)
-
-  //   setQuantity(value)
-  //   onQuantityChange(value)
-  // }
-
   const handleDelete = (index) => {
     console.log("index is ", index)
     let tempID=produceItems[index].id
@@ -324,145 +332,221 @@ const ProduceList = () => {
     // updateUs(prevItems=>prevItems.filter(item=>item.id !== tempID))
   };
 
-  const submitOrder= async(event)=>{
-    console.log(event)
-    console.log(produceItems)
-    console.log(quantity)
-    console.log(userCurrentOrder)
+  const submitOrder = async (event) => {
+    try {
+      // Validate order before sending
+      if (!userCurrentOrder || userCurrentOrder.length === 0) {
+        setError('Cannot submit empty order');
+        toggleSubmitButton();
+        return;
+      }
 
-    // Transform produceItems to match backend expectation
-    const items = produceItems.map(item => ({
-      name: item.name,
-      quantity: item.Qty,
-      case_cost: item.case_cost,
-      total: totalBalance,
-  }));
+      // Transform produceItems to match backend expectation
+      const items = userCurrentOrder.map(item => ({
+        name: item.name,
+        quantity: parseInt(item.Qty), // Ensure quantity is a number
+        case_cost: parseFloat(item.promo_price > 0 ? item.promo_price : item.case_cost),
+        promo: parseFloat(item.promo_price),
+        total: parseFloat(getTotal()) // Use the getTotal function instead of totalBalance
+      }));
 
+      console.log('Attempting to send order with data:', { items });
 
+      const response = await axios.post('http://127.0.0.1:8000/api/send-order', { items }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
 
-  try {
-      const response = await axios.post('http://127.0.0.1:8000/api/send-order', { items });
-      console.log('Response:', response);
-      alert('Order sent successfully!');
-  } catch (error) {
-      console.error('There was an error sending the order!', error);
+      console.log('Server response:', response);
+
+      if (response.data.message === 'Order sent successfully!') {
+        console.log('Order submitted successfully');
+        setError(null);
+        toggleSubmitButton();
+        toggleSubmitButtonClicked();
+        clearOrder();
+        updateCurrentBalance([]);
+      } else {
+        console.error('Unexpected response:', response.data);
+        throw new Error('Unexpected response from server');
+      }
+      
+    } catch (error) {
+      console.error('Full error object:', error);
+      console.error('Error response:', error.response);
+      console.error('Error message:', error.message);
+      
+      setError(
+        error.response?.data?.message || 
+        error.message || 
+        'Failed to send order. Please try again.'
+      );
+      toggleSubmitButton();
+    }
+  };
+
+  const handleClose3=(e,reason)=>{
+    console.log(e)
+    console.log(reason)
+
+    if (reason==='clickaway') {
+      return
+    }
+
+    toggleSubmitButton();
+
   }
 
-    toggleSubmitButton()
+  const clearCurrentOrder=()=>{
+
+    total=0.00
+ 
+    clearOrder()
+    router.push('/produceorder')
   }
 
+  const mainPage=(e)=>{
+ 
+
+    console.log(e)
+    // total=0.00
+    // updateTotalBalance(0.00)
+    // clearOrder()
+    router.push('/produceorder')
+  }
   return (
-    <div className="border border-black bg-blue-50">
-        <div className='grid grid-rows-1'>
-            <div className='flex justify-center'>
-              {/* {console.log(produceItems[length])} */}
-                <h1 className="text-2xl font-bold mb-4 font-instrument">Confirm Your Order</h1>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar title="Confirm Your Order" />
+      
+      <div className="lg:w-4/12 container mx-auto lg:px-4 lg:py-4 mt-14">
+        {/* Order Summary - Moved to top for better visibility */}
+        <div className="mb-4 bg-white rounded-lg shadow-sm p-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded">
+              <span className="text-gray-600">Total Quantity:</span>
+              <span className="text-lg font-semibold">{getTotalQuantity()}</span>
             </div>
-        </div>
-      <div>
-      {listItems.length > 0 && removeOutStocks()}
-        {userCurrentOrder.map((item, index) => (
-          <div key={item.id} className="mb-2">
-              <div className="flex justify-center items-center">
-                <div className={`border border-black w-5/12 rounded-md ${item.stock===false ? 'bg-gray-300' : 'bg-white'}`}>
-
-                {/* TODO: */}
-                  <div className='grid grid-rows-1 border border-green-500'>
-                    <div className='grid grid-cols-4'>
-                    <div className='flex justify-center items-center'>  
-                      <p className={`uppercase font-bold text-sm font-instrument ${item.stock===false && 'text-gray-500'}`}>{item.name}</p>
-                    </div>
-                  <div>
-                              <QuantitySelector 
-                                onQuantityChange={handleQuantityChange}
-                                removeItem={handleDelete}
-                                index={index}
-                                id={item.id}
-                                produceItems={userCurrentOrder}
-                                outStock={item.stock}
-                              />                        
-                            {/* {
-                              selectedQuantity !== '' && (
-                              <p className="mt-2">Selected Quantity: {selectedQuantity}</p>
-                            )} */}
-                  </div>
-                  <div className='grid grid-rows-1'>
-                      <div className='flex justify-center items-center'>
-                          <p className={`uppercase font-bold text-sm font-instrument ${item.stock===false && 'text-gray-500'}`}>Price: ${item.promo_price===0 ? item.case_cost : item.promo_price}</p>
-                      </div>
-                  </div>
-                  <div className='grid grid-rows-1'>
-                    <div className='flex justify-center items-center'>
-                      <div className=''>
-                        <Button className='border border-black hover:bg-red-600' onClick={()=>deleteRecord(index)}
-                          sx={{
-                                fontSize: '0.75rem', // smaller font size
-                                padding: '2px 8px', // custom padding
-                                minWidth: '42px', // minimum width
-                                height: '30px' ,// specific height
-                                background: '#FF6347',
-                                color: 'white'
-                              }}
-                              variant='outlined' 
-                              color='primary' 
-                              size='small' 
-                              disabled={item.stock===false && true}
-                              >Delete</Button>
-                      </div>
-                    </div>
-                </div>
-                </div>
-              </div>
-              </div>
+            <div className="flex items-center justify-between p-3 bg-green-50 rounded">
+              <span className="text-gray-600">Total Amount:</span>
+              <span className="text-lg font-semibold">${parseFloat(getTotal()).toFixed(2)}</span>
             </div>
           </div>
-        ))}
-      </div>
-      <div className='flex items-center justify-center'>
-        <div className='w-5/12'>
-          <div className='w-9/12'>
-            <div className='flex justify-center'>
-              <p className='font-bold font-instrument'>QTY: {getTotalQuantity()}</p>
-          </div>
-        </div>
-        <div className='flex justify-center mb-4'>
-          <p className='font-bold font-instrument'>TOTAL: ${parseFloat(getTotal()).toFixed(2)}</p>
-        </div>
-      <div className='flex justify-center'>
-          <div className='mr-2'>
-            <Button className='border border-black mb-2 hover:bg-teal-500' onClick={submitOrder}
-              sx={{
-                fontSize: '0.75rem', // smaller font size
-                padding: '2px 8px', // custom padding
-                minWidth: '42px', // minimum width
-                height: '30px' ,// specific height
-                background: '#007BFF',
-                color: 'white'
-            }}
-            >SUBMIT</Button>
-          </div>
-          <div className='flex justify-center'>
-            <Button className='border border-black mb-2 hover:bg-teal-500' onClick={()=>router.push('/produceorder')}
-              sx={{
-                fontSize: '0.75rem', // smaller font size
-                padding: '2px 8px', // custom padding
-                minWidth: '42px', // minimum width
-                height: '30px' ,// specific height
-                background: '#007BFF',
-                color: 'white'
-            }}
-            >MODIFY ORDER</Button>
-          </div>
-        </div>
-        </div>
-        <div>
-        {/* {console.log(submitButton)}
-            {submitButton && 
-              <SendEmail />
-            } */}
         </div>
 
+        {/* Order Items List */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="divide-y divide-gray-100">
+            {userCurrentOrder.map((item, index) => (
+              <div key={item.id} 
+                className={`p-3 hover:bg-gray-50 transition-colors
+                  ${item.stock === false ? 'opacity-75 bg-gray-50' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0 mr-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="text-sm font-medium capitalize truncate">{item.name}</h3>
+                      <div className="text-sm">
+                        <span className="font-medium">
+                          ${item.promo_price === 0 ? item.case_cost : item.promo_price}
+                        </span>
+                        {item.promo_price > 0 && (
+                          <span className="ml-2 text-green-600 text-xs">
+                            (Promo: ${item.promo_price})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Case Size: {item.case_size}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {item.Qty < 10 ? (
+                      <QuantitySelector 
+                        onQuantityChange={handleQuantityChange}
+                        removeItem={handleDelete}
+                        index={index}
+                        id={item.id}
+                        produceItems={userCurrentOrder}
+                        outStock={item.stock}
+                        toggleCustomQty={toggleCustomQty}
+                        className="w-28"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <TextField
+                          value={quantity.length === 0 ? item.Qty : quantity}
+                          onChange={(e) => handleQtyChange(quantity, item.Qty, index, item.id)}
+                          size="small"
+                          className="w-16"
+                          InputProps={{
+                            className: "text-center text-sm"
+                          }}
+                        />
+                        {customQty && (
+                          <Button 
+                            onClick={updateQty}
+                            variant="contained"
+                            size="small"
+                            className="min-w-0 px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black"
+                          >
+                            ✓
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-4 flex justify-end gap-3">
+          <Button
+            variant="outlined"
+            onClick={mainPage}
+            className="px-4 py-1.5 text-sm text-blue-600 border-blue-600 hover:bg-blue-50"
+          >
+            Modify Order
+          </Button>
+          <Button
+            variant="contained"
+            onClick={submitOrder}
+            disabled={submitButton}
+            className="px-4 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Submit Order
+          </Button>
+        </div>
       </div>
+
+      {/* Success Snackbar */}
+      <Snackbar1
+        message={error === null ? 'Order Submitted Successfully' : error}
+        autoHideDuration={2000}
+        open={submitButton}
+        onClose={handleClose3}
+        sx={{
+          '& .MuiSnackbarContent-root': {
+            backgroundColor: 'rgb(45, 212, 191)',
+            color: 'black',
+            fontWeight: 'bold',
+            borderRadius: '4px',
+            padding: '0.75rem',
+          },
+        }}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center'      
+        }}      
+      />
+
+      {submitButton && clearCurrentOrder()}
     </div>
   );
 };

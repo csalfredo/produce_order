@@ -5,117 +5,82 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
+            line-height: 1.6;
             color: #333;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            width: 60%;
-            margin: 20px auto;
-            background: white;
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
+
         h1 {
+            color: #2c5282;
             text-align: center;
-            color: #4CAF50;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4299e1;
         }
-        ul {
-            list-style-type: none;
-            padding: 0;
-            width: 80%;
+
+        h2 {
+            color: #2d3748;
+            margin-top: 20px;
         }
-        li {
-            background: #f4f4f4;
-            margin: 5px 0;
-            padding: 6px;
-            border-radius: 4px;
-            display: flex;
-        }
-        li:nth-child(odd) {
-            background: #e9e9e9;
-        }
-        .item{
-            display: flex;
-            justify-content: space-between;
+
+        table {
             width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
-        .item-name {
-            width: 30%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 12px;
+
+        th {
+            background-color: #4299e1;
+            color: white;
+            padding: 12px;
+            text-align: left;
         }
-        .item-quantity, .item-cost {
-            font-style: italic;
-            width: 30%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 10px;
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .quantityName{
-            text-align: center;
+
+        tr:nth-child(even) {
+            background-color: #f7fafc;
+        }
+
+        h3 {
+            color: #2c5282;
+            text-align: right;
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        .total {
             font-weight: bold;
-            width: 25%;
-            font-size: 14px;
-            
-        }
-        .caseCostName{
-            font-weight: bold;
-            text-align: center;
-            width: 40%;
-            font-size: 14px;
-          
-        }
-        .item-cost{
-            width: 50%;
-        }
-        .name{
-            width: 20%;
-            font-weight: bold;
-            text-align: center;
-            font-size: 14px;
-        }
-        .titleHeader{
-            display: flex;
-            justify-content: space-between;
-        }
-        .titleHeader {
-            color: #28A2F7; /* Optional: Change text color for better contrast */
+            font-size: 1.1em;
+            color: #2c5282;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Produce Order</h1>
-        <ul>
-            <li class="titleHeader">
-                <div class="name">NAME</div>
-                <div class="quantityName">QTY</div>
-                <div class="caseCostName">COST</div>
-            </li>
-            @foreach ($order['items'] as $item)
-                <li>
-                    <div class="item-name">{{ $item['name'] }}</div> 
-                    <div class="item-quantity">{{ $item['quantity'] }}</div> 
-                    <div class="item-cost">${{ $item['case_cost'] }}</div>
-                </li>
-            @endforeach
-        </ul>
-            <div>
+    <h1>New Produce Order</h1>
     
-                    <div class=""total>
-                      Total:${{ $total }}
-                    </div> 
+    <h2>Order Details:</h2>
+    <table>
+        <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Price</th>
+        </tr>
+        @foreach($order['items'] as $item)
+        <tr>
+            <td>{{ $item['name'] }}</td>
+            <td>{{ $item['quantity'] }}</td>
+            <td>${{ number_format($item['case_cost'], 2) }}</td>
+        </tr>
+        @endforeach
+    </table>
 
-            </div>
-    </div>
+    <h3>Total: <span class="total">${{ number_format($total, 2) }}</span></h3>
 </body>
 </html>

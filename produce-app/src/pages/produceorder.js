@@ -3,17 +3,18 @@ import Images from 'next/image'
 import { useRouter } from 'next/router';
 import { useProduce } from './context/ProduceContext';
 import Responsiveproduceorder from '@/components/Responsiveproduceorder'
-import { Stack, Autocomplete, TextField, Button,Snackbar } from "@mui/material"
+import { Stack, Autocomplete, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Alert, Snackbar } from "@mui/material"
+import MuiAlert from '@mui/material/Alert'
 import trashDelete from "../components/images/deleteTrash.png"
 import gala_apple from "../components/images/gala_apple.png"
-import fuji_apple from "../components/images/fuji_apples.png"
+import fuji_apple from "../components/images/FUJIAPPLE.png"
 import honey_crisp from "../components/images/honeycrisp.png"
-import granny_smith from "../components/images/granny_smith2.png"
+import granny_smith from "../components/images/appleGranny.png"
 import oranges_navel from "../components/images/navel_oranges.png"
 import lemons from "../components/images/lemons.png"
-import limes from "../components/images/limes.png"
+import limes from "../components/images/LIMES.png"
 import strawberries from "../components/images/strawberries.png"
-import bananas from "../components/images/bananas.png"
+import bananas from "../components/images/BANANAS.png"
 import blueberries from "../components/images/blueberries.png"
 import cabbage from "../components/images/cabbage.png"
 import cauliflower from "../components/images/cauliflower.png"
@@ -23,11 +24,19 @@ import red_grapes from "../components/images/red_grapes.png"
 import roma from "../components/images/roma.png"
 import tomato from "../components/images/tomato.png"
 import watermelon from "../components/images/watermelon.png"
-
-
+import Image from 'next/image';
 import { useState, useEffect } from 'react'
 import { toggle, user } from '@nextui-org/react'
 import queryString from 'query-string';
+import { COOKIE_NAME_PRERENDER_BYPASS } from 'next/dist/server/api-utils';
+import Navbar from '../components/Navbar';
+// import { Search } from '@mui/icons-material';
+import SearchIcon from '@mui/icons-material/Search'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
+import AccountCircleIcon from '@mui/icons-material/AccountCircle'
+import HelpIcon from '@mui/icons-material/Help'
 
 // import {  Autocomplete,  AutocompleteSection,  AutocompleteItem} from "@nextui-org/autocomplete";
 export default function produceorder() {
@@ -53,7 +62,7 @@ export default function produceorder() {
     //                         {id:16, name:"watermelon", product_code:"304", inventory:"40 bins", case_cost:200.15, case_size:"120 units", promo_price:0, stock:true, produce_Image: watermelon, Qty:1,totalBalance:0.00},
     //                       ]);
     // const [userCurrentOrder, setUserCurrentOrder]=useState([])
-    const { produceListItems, userCurrentOrder, updateUserOrder, updateTotalBalance,totalBalance,updateQtyTotal,qtyTotal,getQty} = useProduce();
+    const { produceListItems, updateProduceList,userCurrentOrder, updateUserOrder, updateTotalBalance,totalBalance,updateQtyTotal,qtyTotal,getQty,clearOrder,updateCurrentBalance, currentBalance,toggleSubmitButtonClicked, submitButtonClicked } = useProduce();
     const router = useRouter();
 
     const [value, setValue]=useState(null);
@@ -61,16 +70,36 @@ export default function produceorder() {
     const [isSmallScreen, setIsSmallScreen]=useState(false)
     const [isMediumScreen, setIsMediumScreen]=useState(false)
     const [isLargeScreen, setIsLargeScreen]=useState(false)
-    const [currentBalance, setCurrentBalance]=useState([])
+    // const [currentBalance, setCurrentBalance]=useState([])
     // const [totalBalance,setTotalBalance]=useState(parseFloat(0.00).toFixed(2))
     const [enterButton, setEnterButton]=useState(false)
     const [open, setOpen]=useState(false)
+    const [itemExist, setItemExist]=useState(false)
+    const [isLoading, setIsLoading] = useState(false);
+    const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+    const [notification, setNotification] = useState({
+      open: false,
+      message: '',
+      severity: 'success' // can be 'error', 'warning', 'info', 'success'
+    });
+
+    // useEffect(() => {
+    //   console.log("Total balance updated: ", totalBalance);
+    // }, [totalBalance]);
+
+    console.log("submitButtonClicked is ", submitButtonClicked)
+    if(submitButtonClicked===true){
+      updateTotalBalance(0)
+      toggleSubmitButtonClicked()
+    }
 
     useEffect(()=>{
       const handleResize=()=>{
         setIsSmallScreen(window.innerWidth < 640)
         
       }
+
+      
 
       handleResize()
 
@@ -82,6 +111,30 @@ export default function produceorder() {
 
     },[])
 
+    // useEffect(()=>{
+    //   if(submitButtonClicked){
+    //     updateTotalBalance(0.00)
+    //     toggleSubmitButtonClicked()
+    //   }
+    // },[submitButtonClicked])
+
+    useEffect(() => {
+      const handleKeyPress = (e) => {
+        // Press '/' to focus search
+        if (e.key === '/' && e.target.tagName !== 'INPUT') {
+          e.preventDefault();
+          document.querySelector('input[type="text"]').focus();
+        }
+        // Press 'Escape' to clear search
+        if (e.key === 'Escape') {
+          setValue(null);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyPress);
+      return () => window.removeEventListener('keydown', handleKeyPress);
+    }, []);
+
     const setProduceValue=(newValue)=>{
       console.log(newValue);
 
@@ -92,33 +145,70 @@ export default function produceorder() {
       setOpen(!open)
     }
 
-    const getCurrentProduceValue=()=>{
-      console.log(value);
-
-      if (value !==null) {
-        //TODO:CHANGE ENTER TO TRUE
-        toggleEnterButton()
-        // setUserCurrentOrder([...userCurrentOrder,value]);
-        if (value && !userCurrentOrder.find(item => item.id === value.id)) {
-          const selectedItem = produceListItems.find(item => item.id === value.id);
-          updateUserOrder([...userCurrentOrder, { ...selectedItem, quantity: 1 }]);
-        }
-      }
-      else{
-        return(
-
-          toggleSnackBar()
-        )
-      }
-
-
-      // setUserCurrentOrder(currentArray=>[...currentArray,value]);
-      // setValue(null);
+    const toggleSnackBarItemExist=()=>{
+      setItemExist(!itemExist)
     }
+
+    const searchItem=(itemName)=>{
+      let index=0;
+      let match=false;
+
+      while (index < userCurrentOrder.length) {
+        if (itemName===userCurrentOrder[index].name) {
+          match=true;
+          index=userCurrentOrder+1;//TO KICK OUT OF THE LOOP
+        }
+
+        index++;
+
+      }//end of while loop
+
+      console.log("match is ", match)
+
+      return match;
+    }
+
+
+    const searchItemExist=(value)=>{
+      let found=false;
+
+      // console.log(userCurrentOrder)
+
+      if(userCurrentOrder.length===0){
+        found=false;
+      }else
+      {
+        found=searchItem(value.name)
+      }
+
+      return found;
+    }
+    const getCurrentProduceValue = (event) => {
+      // Check if value exists and is a valid selection
+      if (!value) {
+        setOpen(true);
+        return;
+      }
+
+      // Check if item already exists in order
+      const itemExists = userCurrentOrder.some(item => item.id === value.id);
+      
+      if (itemExists) {
+        setItemExist(true);
+        return;
+      }
+
+      // If we get here, item is valid and not a duplicate, so add it
+      const updatedOrder = [...userCurrentOrder, { ...value, Qty: 1 }];
+      updateUserOrder(updatedOrder);
+      setValue(null); // Clear the autocomplete after adding
+    };
 
     const findProduceItem=(id)=>{
       let index=0;
       let locationFound;
+
+      console.log(userCurrentOrder)
 
       while (index < userCurrentOrder.length) {
         if(userCurrentOrder[index].id===id){
@@ -154,6 +244,38 @@ export default function produceorder() {
       setEnterButton(!enterButton)
     }
 
+    const updateCrrntQty=(qty,caseCost,promoPrice,stock,index,id,produceItemLocation)=>{
+
+      console.log("qty is ", qty)
+      console.log("caseCost is ", caseCost)
+      console.log("promoPrice is ", promoPrice)
+      console.log("stock is ",stock)
+      console.log("index is ", index)
+      console.log("id is ", id)
+      console.log("current location of this item is ", produceItemLocation)
+
+      let currentQty;
+      let amountTotal;
+      let Balance;
+
+      Balance=[...currentBalance]
+
+      console.log(Balance)
+
+      if(promoPrice > 0){
+        amountTotal=qty*promoPrice
+        Balance[produceItemLocation]=amountTotal
+        getTotalBalance(Balance)
+      }
+      else if(caseCost > 0){
+        amountTotal=qty*caseCost
+        Balance[produceItemLocation]=amountTotal
+        getTotalBalance(Balance)
+      }
+
+      console.log(Balance)
+    }
+
     const increaseProduceItem=(e,Quantity, id, case_cost, promoPrice,stock,index)=>{
       let produceItemLocation;
       let currentQty;
@@ -182,7 +304,8 @@ export default function produceorder() {
         console.log(updateItems)
         console.log("id is ", id)
         console.log(updateItems[produceItemLocation].Qty)
-        getCurrentBalance(updateItems[produceItemLocation].Qty,case_cost,promoPrice,stock,index,id)
+        // getCurrentBalance(updateItems[produceItemLocation].Qty,case_cost,promoPrice,stock,index,id)
+        updateCrrntQty(updateItems[produceItemLocation].Qty,case_cost,promoPrice,stock,index,id,produceItemLocation)
         
     }
 
@@ -197,15 +320,6 @@ export default function produceorder() {
 
       console.log("Qty is ", qtyTotal)
       console.log("id is ", id)
-
-      // if (qtyTotal===undefined) {
-      //   console.log(userCurrentOrder)
-      //   qtyLocation=findQtyInUserCurrentOrder(id)
-
-      //   console.log("qtyLocation is ", qtyLocation)
-      //    tempValueQty=getQty(qtyLocation)
-
-      //    console.log("tempValueQty is ", tempValueQty)
 
       //   //TODO: AT THIS POINT I HAVE THE QUANTITY VALUE FROM THE CURRENT PRODUCE ITEM
 
@@ -222,16 +336,22 @@ export default function produceorder() {
       if (currentQty===0) {
         const updateItems=[...userCurrentOrder];
         updateItems[produceItemLocation].Qty=currentQty;
-        // setProduceListItems(updateItems);
-        const updatedOrder = userCurrentOrder.map(item =>
-          item.id === id ? { ...item, Qty: Number(currentQty) } : item
-        );
-        updateUserOrder(updatedOrder);
+        // // setProduceListItems(updateItems);
+        // const updatedOrder = userCurrentOrder.map(item =>
+        //   item.id === id ? { ...item, Qty: Number(currentQty) } : item
+        // );
+        // updateUserOrder(updatedOrder);
+
+
+        updateUserOrder(prevItems=>prevItems.filter(item=>item.id !== id))
+
+
         // console.log("At this point valueQty should be ZERO, ", valueQty);
         // setUserCurrentOrder(currentItems=>{
         //   newOrderProduceList=currentItems.filter(item=>item.id !== id);
         //   console.log("updated items:", newOrderProduceList)
-        //   getCurrentBalance(updateItems[id].Qty,case_cost,promoPrice,stock,index,id)
+          // getCurrentBalance(updateItems[id].Qty,case_cost,promoPrice,stock,index,id)
+          updateCrrntQty(updateItems[produceItemLocation].Qty,case_cost,promoPrice,stock,index,id,produceItemLocation)
 
         //   return newOrderProduceList;
         // })
@@ -244,23 +364,25 @@ export default function produceorder() {
           const updatedOrder = userCurrentOrder.map(item =>
             item.id === id ? { ...item, Qty: Number(currentQty) } : item
           );
+
+          console.log("updatedOrder is ", updatedOrder)
           updateUserOrder(updatedOrder);
-          getCurrentBalance(updateItems[produceItemLocation].Qty,case_cost,promoPrice,stock,index,id)
+          // getCurrentBalance(updateItems[produceItemLocation].Qty,case_cost,promoPrice,stock,index,id)
+          updateCrrntQty(updateItems[produceItemLocation].Qty,case_cost,promoPrice,stock,index,id,produceItemLocation)
       }
 
 
   }
   const getTotalBalance=(Balance)=>{
 
-    console.log(Balance)
-    setCurrentBalance(Balance)
-    console.log(currentBalance)
-
-
     let tempValueCost=0
     let currentValue=0
     let index=0
 
+    console.log("Balance is ", Balance)
+
+    // setCurrentBalance(Balance)
+    updateCurrentBalance(Balance)
     while (index < Balance.length) {
       console.log("index is ", index)
   
@@ -280,68 +402,109 @@ export default function produceorder() {
 
     // setTotalBalance(currentValue)
 
+   
     updateTotalBalance(currentValue)
+
+    // return currentValue
 
   }
 
   const getCurrentBalance=(Qty,caseCost,promoPrice,stock,location,id)=>{
 
-   location=findProduceItem(id)
-
     console.log("Quantity is ", Qty)
     console.log("caseCost is ", caseCost)
+    console.log("promoPrice is ", promoPrice)
     console.log("stock is ", stock)
     console.log("location is ", location)
+    console.log("currentBalance is ", currentBalance)
 
     let newAmount;
+    let qty;
+    let cost;
     let currentValue;
-    let Balance;
-    let currentTotal;
-    
+    let Balance=[]
+    let currentTotalValue;
+    let element=userCurrentOrder.length
+    let tempUserCurrentOrder=[...userCurrentOrder]
+    let value=tempUserCurrentOrder.pop()
 
-    console.log(currentBalance)
-    
-    currentValue=currentBalance[location];
-    
-    console.log("currentValue is ", currentValue);
+    console.log("value is ", value)
 
-    Balance=[...currentBalance];
+   
+    Balance=[...currentBalance]
 
-    if (stock===true)
+
+
+  //  location=findProduceItem(id)
+
+
+    if (value.stock===true)
     {
-        if(promoPrice===0)
+        if(value.promo_price===0)
         {
+          //TODO:STEP1-GET THE CASE COST OF THE ITEM
+          cost=value.case_cost
+          //TODO:STEP2-GET THE QUANTITY OF THE ITEM
+            qty=value.Qty
+          //TODO:STEP3-MULTIPLY THE CASE_COST WITH QUANTITY
+            newAmount=(qty*cost)
+          //TODO:STEP4-INSERT THE RESULT OF STEP 3 INTO BALANCE ARRAY
+            Balance[element-1]=newAmount
+                // setCurrentBalance([...currentBalance, { ...currentBalance, newAmount }])
+              
+              // setCurrentBalance([...Balance])
+              updateCurrentBalance([...Balance])
 
-            console.log("using the caseCost value, and Qty is ", Qty)
-            newAmount=(Qty*caseCost);
-            Balance[location]=newAmount
-            // setCurrentBalance(Balance)
-            getTotalBalance(Balance)
+          //TODO:STEP6-CALCULATE THE TOTAL BALANCE
+          getTotalBalance(Balance)
 
-        }  
+          console.log("the size of userCurrentOrder is ", element)
+          console.log("qty is ", qty, ",and cost is ",cost)
+            // console.log("using the caseCost value, and Qty is ", Qty)
+            // newAmount=(Qty*caseCost);
+            // Balance[location]=newAmount
+            // // setCurrentBalance(Balance)
+            // currentTotalValue=getTotalBalance(Balance)
+
+        }   
         else{
          
-            console.log("Using the Promo value, and Qty is ", Qty)
-            newAmount=(Qty*promoPrice);
-            console.log("newAmount is ", newAmount)
-            Balance[location]=newAmount
-            console.log(Balance)
-            // setCurrentBalance(Balance)
-            console.log(currentBalance);
-            // setTotalBalance(parseFloat(newAmount).toFixed(2)) 
+            // console.log("Using the Promo value, and Qty is ", Qty)
+            // newAmount=(Qty*promoPrice);
+            // console.log("newAmount is ", newAmount)
+            // Balance[location]=newAmount
+            // console.log(Balance)
+            // // setCurrentBalance(Balance)
+            // console.log(currentBalance);
+            // // setTotalBalance(parseFloat(newAmount).toFixed(2)) 
+            // currentTotalValue=getTotalBalance(Balance)
+          //TODO:STEP1-GET THE CASE COST OF THE ITEM
+          cost=value.promo_price
+          //TODO:STEP2-GET THE QUANTITY OF THE ITEM
+            qty=value.Qty
+          //TODO:STEP3-MULTIPLY THE CASE_COST WITH QUANTITY
+            newAmount=(qty*cost)
+          //TODO:STEP4-INSERT THE RESULT OF STEP 3 INTO BALANCE ARRAY
+            Balance[element-1]=newAmount
+                // setCurrentBalance([...currentBalance, { ...currentBalance, newAmount }])
+              
+              // setCurrentBalance([...Balance])
+              updateCurrentBalance([...Balance])
+
+            //TODO:STEP6-CALCULATE THE TOTAL BALANCE
             getTotalBalance(Balance)
-      
         }  
     }
     else{
       console.log("THE ITEM IS OUT OF STOCK")
     }
-
     
-        //TODO:SET ENTER BUTTON TO FALSE
-        toggleEnterButton();
-        
-        console.log("currentTotal is ", currentBalance)
+    console.log(currentTotalValue)
+    updateTotalBalance(currentTotalValue)
+    // //TODO:SET ENTER BUTTON TO FALSE
+    toggleEnterButton();
+    // console.log("currentTotal is ", totalBalance)
+
   }
 
   const handleConfirmOrder=()=>{
@@ -383,190 +546,255 @@ export default function produceorder() {
     toggleOpen()
   }
 
+  const handleClose2 = () => {
+    setItemExist(false);
+  };
+
+  // Add console.log to debug
+  console.log('Current total balance:', totalBalance);
+  console.log('Current order:', userCurrentOrder);
+
+  const calculateTotal = () => {
+    return userCurrentOrder.reduce((sum, item) => {
+      // Skip out-of-stock items in total calculation
+      if (!item.stock) return sum;
+      
+      const price = item.promo_price > 0 ? item.promo_price : item.case_cost;
+      return sum + (price * item.Qty);
+    }, 0).toFixed(2);
+  };
+
+  // Replace toast calls with this function
+  const notify = (message, severity = 'success') => {
+    setNotification({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  // Add this handler
+  const handleCloseNotification = () => {
+    setNotification({
+      ...notification,
+      open: false
+    });
+  };
+
   return (
-    <div>
-      {console.log("currentBalance is ", currentBalance)}
-      <div className="flex justify-center">
-        <div>
-          <h1 className='text-2xl font-bold font-instrument'>PRODUCE ORDER</h1>
-        </div>
-    </div>
-        <div className='flex justify-center mt-4'>
-          <Stack spacing={2} width='250px'>
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-green-50">
+      <header className="w-full bg-white shadow-sm">
+        <Navbar title="PRODUCE ORDER" main="Main" />
+      </header>
+      
+      <main className="container mx-auto pt-16">
+        {/* Search Section */}
+        <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="flex gap-2 bg-white p-4 rounded-lg shadow-sm">
             <Autocomplete 
-              options={produceListItems} 
-              getOptionLabel={(option)=>option.name}
-              renderInput={(params)=><TextField{...params} 
-              label="PRODUCT" />}
+              size="small"
+              fullWidth
+              options={produceListItems}
+              getOptionLabel={(option) => option.name || ''}
+              renderInput={(params) => (
+                <TextField 
+                  {...params}
+                  label="Search Products"
+                  size="small"
+                />
+              )}
               value={value}
-              onChange={(e, newValue)=>setProduceValue(newValue)}
+              onChange={(event, newValue) => {
+                setValue(newValue);
+              }}
+              isOptionEqualToValue={(option, value) => 
+                option.id === value.id
+              }
+              loading={isLoading}
+              loadingText="Searching..."
             />
-          </Stack>
-        </div>
-          <div className='flex justify-center mt-2'>
-            <Button className='border border-black hover:bg-teal-500' 
-              sx={{
-                    fontSize: '0.75rem', // smaller font size
-                    padding: '2px 8px', // custom padding
-                    minWidth: '42px', // minimum width
-                    height: '30px' ,// specific height
-                    background: '#007BFF',
-                    color: 'white'
-                }}
-
-            onClick={(e)=>getCurrentProduceValue(e)}>Enter</Button>
+            <Button
+              variant="contained"
+              onClick={getCurrentProduceValue}
+              disabled={!value}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+            >
+              Add
+            </Button>
           </div>
-        <div className='flex justify-center'>
-          <div className='grid grid-rows-1 border border-gray-400 mt-8 w-10/12 rounded bg-blue-50'>
-            <div className='grid grid-rows-1 mt-2  w-11/12 sm:mt-4 ml-4 mb-10 md:mb-12 lg:mb-4 rounded lg:ml-10 bg-white'>
-              <div className='p-4'>
-                {console.log(userCurrentOrder)}
-                  {userCurrentOrder.map((item,index)=>
-                      isSmallScreen===false ? (
-                      <div key={item.id}>
-                        {enterButton && getCurrentBalance(item.Qty,item.case_cost,item.promo_price,item.stock,index, item.id)}
-                        <div className='border-b-1 border border-black rounded-lg'>
-                            {/* <div className='border border-black w-7 flex justify-center mt-2 rounded-full'>
-                              <p>{index+1}</p> 
-                            </div> */}
-                            <div className='grid grid-rows-1 lg:flex justify-start'>
-                              <div className='lg:w-2/12 flex justify-center sm:w-6/12'>
-                                <Images alt={item.name} src={item.produce_Image} style={{width: "100%", height: "85%" }}/>
-                              </div> 
-                              <div className='grid grid-rows-1 lg:inline-block lg:w-11/12 sm:w-full'>
-                                  <div className='grid grid-rows-1'>
-                                    <div className='flex justify-end mb-2'>
-                                      {/* <p className='font-bold text-xs/[17px] mb-1 inline-block'>IN STOCK:</p> */}
-                                      
-                                      <p className='text-orange-500 inline-block font-bebas text-sm/[17px] font-bold mr-2'>  {item.stock===false && "OUT OF STOCK"}</p>
-                                    </div>
-                                    <div className='grid grid-rows-1'>
-                                      <h1 className='uppercase font-bold text-xl mt-10 font-instrument'>{item.name}</h1>
-                                    </div>
-                                  </div>
-                              </div>
-                            </div>
-                          <div className=' flex justify-between w-full'>
-                              <div className='inline-block mt-2'>
-                                <div className='inline-block'>
-                                  {item.stock===true ? 
-                                    <Button variant='outlined' color='primary' size='small' onClick={(e)=>deleteQty(e,item.id,item.Qty,item.case_cost,item.promo_price,item.stock,index)}><Images alt={item.name} src={trashDelete}/></Button>
-                                  :
-                                  <Button className='bg-gray-200 opacity-50 cursor-not-allowed' disabled={true} variant='outlined' color='primary' size='small' onClick={(e)=>deleteQty(e,item.id,item.Qty,item.case_cost,item.promo_price,item.stock,index)}><Images alt={item.name} src={trashDelete}/></Button>
-                                }
-                                </div>
-                              <div className='inline-block w-1/6 ml-2'>
-                                <Stack spacing={4}>
-                                  <Stack direction='row' spacing={2}>
-                                      <TextField 
-                                        sx={{
-                                          '& .MuiInputBase-input': { // Targeting the input element directly
-                                            fontSize: '0.8rem', // Decreasing the font size
-                                            height:'13px'
-                                          }
-                                        }} 
-                                        label='QTY' 
-                                        size='small' 
-                                        value={item.Qty} onChange={e=>setValueQty(e.target.value) }/>
-                                  </Stack>
-                                </Stack>
-                              </div>
-                              <div className='inline-block ml-2.5'>
-                                {item.stock===true ? 
-                                  <Button className='w-1/12 font-bold text-black text-base' variant='outlined' color='primary' size='small' onClick={e=>increaseProduceItem(e,item.Qty,item.id,item.case_cost,item.promo_price,item.stock,index)}>+</Button>
-                                  :
-                                  <Button className='bg-gray-200 opacity-50 cursor-not-allowed w-1/12 font-bold text-black text-base' disabled={true} variant='outlined' color='primary' size='small' onClick={e=>increaseProduceItem(e,item.Qty,item.id,item.case_cost,item.promo_price,item.stock,index)}>+</Button>
-                              }
-                              </div>
-                            </div>
-                            
-                              <div className='lg:inline-block ml-8'>
-                                <p className='lg:font-bold text-xs/[17px] mb-1 mr-2 inline-block font-bold font-sans'>CASE COST:</p>
-                                <p className='text-xs/[17px] inline-block'> ${item.case_cost}</p>
-                              </div>
-                            
-                            
-                              <div className='inline-block ml-6'>
-                                <p className='font-bold text-xs/[17px] mb-1 mr-2 inline-block font-sans'>CASE SIZE:</p>
-                                <p className='text-xs/[17px] inline-block'> {item.case_size}</p>
-                              </div>
-                            
-                          
-                            <div className='inline-block'>
-                              <p className='text-red-500 font-bold text-xs/[17px] mb-1 mr-1 inline-block'>PROMO PRICE: </p>
-                              <p className='text-xs/[17px] inline-block mr-2'> ${item.promo_price}</p>
-                            </div>
-                          </div>
-                        </div>
+        </div>
 
+        {/* Order List */}
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-200 border border-gray-200">
+            {userCurrentOrder.map((item, index) => (
+              <div 
+                key={item.id} 
+                className={`p-4 hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0 ${
+                  !item.stock ? 'opacity-75 bg-gray-50' : ''
+                }`}
+              >
+                <div className="flex items-center">
+                  <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden">
+                    <Image
+                      src={item.produce_Image}
+                      alt={item.name}
+                      width={64}
+                      height={64}
+                      style={{ 
+                        objectFit: 'contain',
+                        maxWidth: '100%',
+                        maxHeight: '100%'
+                      }}
+                    />
                   </div>
-                      ) : (    
-                        <div key={item.id}>
-                            <Responsiveproduceorder 
-                            id={item.id}
-                            produce_name={item.name}
-                            case_cost={item.case_cost}
-                            case_size={item.case_size}
-                            promo={item.promo_price}
-                            produce_image={item.produce_Image}
-                            userCurrentOrder={userCurrentOrder}
-                            setUserCurrentOrder={setUserCurrentOrder}
-                            stock={item.stock}
-                            count={index}
-                            Quantity={item.Qty}
-                            value={value}
-                            setValue={setValue}
-                            valueQty={valueQty}
-                            setValueQty={setValueQty}
-                            increaseProduceItem={increaseProduceItem}
-                            deleteQty={deleteQty}
-                            index={index}
-                            enterButton={enterButton}
-                            getCurrentBalance={getCurrentBalance}
-                            />
-                        </div>
-                      )
-                  )
-                  }
+                  
+                  <div className="flex-1 min-w-0 ml-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-medium capitalize">{item.name}</h3>
+                        {!item.stock && (
+                          <span className="text-xs text-red-600 font-medium">
+                            Out of Stock
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          onClick={(e) => deleteQty(e, item.id, item.Qty, item.case_cost, item.promo_price, item.stock, index)}
+                          className="min-w-0 p-1"
+                          disabled={!item.stock}
+                        >
+                          <DeleteIcon className="w-4 h-4 text-red-500" />
+                        </Button>
+                        <TextField
+                          size="small"
+                          value={item.Qty}
+                          className="w-16"
+                          disabled={!item.stock}
+                          InputProps={{
+                            readOnly: !item.stock
+                          }}
+                        />
+                        <Button
+                          onClick={(e) => increaseProduceItem(e, item.Qty, item.id, item.case_cost, item.promo_price, item.stock, index)}
+                          className="min-w-0 p-1"
+                          disabled={!item.stock}
+                        >
+                          <AddIcon className="w-4 h-4 text-blue-500" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                      <span>${item.case_cost}</span>
+                      <span>•</span>
+                      <span>{item.case_size}</span>
+                      {item.promo_price > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="text-green-600">
+                            Promo: ${item.promo_price}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className='grid grid-rows-1'>
-              <div className='flex justify-center'>
-                <div></div>
-                <Button className='sm:flex justify-center w-4/12 lg:w-2/12 hover:bg-teal-500' 
-                  sx={{
-                    fontSize: '0.75rem', // smaller font size
-                    padding: '2px 8px', // custom padding
-                    minWidth: '42px', // minimum width
-                    height: '30px' ,// specific height
-                    background: '#007BFF',
-                    color: 'white'
-                }}                
-                onClick={handleConfirmOrder}>CHECKOUT</Button>
-              </div>
-            </div>
-            <div className='inline-block ml-10'>
-              <p className='inline-block font-bold font-instrument'>CURRENT BALANCE: $</p>
-              <p className='inline-block'>{parseFloat(totalBalance).toFixed(2)}</p>
-            </div>
-            <div className='mt-4'></div>
+            ))}
           </div>
+
+          {/* Order Summary */}
+          {userCurrentOrder.length > 0 && (
+            <div className="mt-4 bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <div className="flex justify-between items-center">
+                <div className="text-lg font-medium text-gray-900">
+                  Total: ${calculateTotal()}
+                </div>
+                <Button
+                  variant="contained"
+                  onClick={() => setOpenConfirmDialog(true)}
+                  disabled={isLoading}
+                  className="bg-[#166534] hover:bg-[#14532d] text-white shadow-sm px-6"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : 'Checkout'}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
-            {open && 
-              <Snackbar 
-                message='Need to choose an item from the list before clicking on the enter button'
-                autoHideDuration={5000}
-                open={open}
-                onClose={handleClose}
-                anchorOrigin={{vertical: 'top',
-                               horizontal: 'center'      
-                }}      
-              />
-            
-            }
-    </div>  
+        {/* Snackbars */}
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={3000}
+          onClose={handleCloseNotification}
+          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        >
+          <Alert 
+            onClose={handleCloseNotification} 
+            severity={notification.severity}
+            sx={{ width: '100%' }}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
 
-
-  )
+        {/* Confirmation Dialog */}
+        <Dialog
+          open={openConfirmDialog}
+          onClose={() => setOpenConfirmDialog(false)}
+          PaperProps={{
+            className: 'rounded-lg'
+          }}
+        >
+          <DialogTitle className="bg-gray-50 border-b border-gray-200">
+            Confirm Order
+          </DialogTitle>
+          <DialogContent className="mt-4">
+            <div className="space-y-4">
+              <p className="text-gray-600">Are you sure you want to place this order?</p>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Total Items:</span>
+                  <span>{userCurrentOrder.length}</span>
+                </div>
+                <div className="flex justify-between font-medium text-gray-900 mt-2">
+                  <span>Total Amount:</span>
+                  <span>${calculateTotal()}</span>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+          <DialogActions className="p-4 bg-gray-50">
+            <Button 
+              onClick={() => setOpenConfirmDialog(false)}
+              variant="outlined"
+              className="text-gray-700 bg-white hover:bg-gray-100 border border-gray-300 px-4 py-2 rounded-md"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                setOpenConfirmDialog(false);
+                handleConfirmOrder();
+              }}
+              variant="contained"
+              className="bg-[#166534] hover:bg-[#14532d] text-white px-4 py-2 rounded-md"
+            >
+              Confirm Order
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </main>
+    </div>
+  );
 }

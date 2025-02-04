@@ -11,7 +11,7 @@ const CustomMenu = styled(Menu)(({ theme }) => ({
 }));
 
 
-const QuantitySelector = ({ onQuantityChange, removeItem,index,id,produceItems,outStock }) => {
+const QuantitySelector = ({ onQuantityChange, removeItem,index,id,produceItems,outStock,toggleCustomQty }) => {
   const [quantity, setQuantity] = useState('');
   const [isCustomQuantity, setIsCustomQuantity] = useState(false);
   const [customQty, setCustomQty]=useState(false)
@@ -19,9 +19,9 @@ const QuantitySelector = ({ onQuantityChange, removeItem,index,id,produceItems,o
 
   console.log("outStock is ", outStock)
 
-  const toggleCustomQty=()=>{
-    setCustomQty(!customQty)
-  }
+  // const toggleCustomQty=()=>{
+  //   setCustomQty(!customQty)
+  // }
 
   const handleQuantityChange = (event) => {
     const value = event.target.value;
@@ -62,9 +62,9 @@ const QuantitySelector = ({ onQuantityChange, removeItem,index,id,produceItems,o
     return produceItems[index].Qty
   }
 
-  const updateQty=()=>{
-    toggleCustomQty()
-  }
+  // const updateQty=()=>{
+  //   toggleCustomQty()
+  // }
 
   return (
     <div className='flex justify-center items-center'>
@@ -78,7 +78,7 @@ const QuantitySelector = ({ onQuantityChange, removeItem,index,id,produceItems,o
           value={quantity.length===0 ? getValue() : quantity}
           onChange={handleQuantityChange}
           displayEmpty
-          sx={{background: '#E8E8E8',width: "45%", height: "45px", lineHeight: 'normal'}}
+          sx={{background: '#E8E8E8',width: "100%", height: "45px", lineHeight: 'normal'}}
           className="border border-gray-300 rounded"
           MenuProps={{
             PaperProps: {
@@ -105,17 +105,18 @@ const QuantitySelector = ({ onQuantityChange, removeItem,index,id,produceItems,o
             placeholder="Qty"
             className="border border-gray-300 rounded"
             sx={{
-              width:"45%",
+              width:"80%",
               fontSize: '1.20rem',
             
             }}
         />
       )}
-      <div className='ml-2'>
+      {console.log("customQty is ", customQty)}
+      {/* <div className='ml-2'>
         {customQty===true &&
           <Button onClick={updateQty} className='text-black bg-yellow-500 rounded-xl text-sm/[14px] hover:bg-yellow-600'>UPDATE</Button>
         }
-      </div>
+      </div> */}
     </div>
   );
 };
